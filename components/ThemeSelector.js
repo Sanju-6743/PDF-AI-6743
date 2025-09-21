@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useTheme } from '../lib/themeContext';
 
 const themes = [
   {
@@ -66,29 +67,11 @@ const themes = [
 ];
 
 export default function ThemeSelector() {
-  const [currentTheme, setCurrentTheme] = useState('blue');
+  const { currentTheme, changeTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('colorTheme') || 'blue';
-    setCurrentTheme(savedTheme);
-    applyTheme(savedTheme);
-  }, []);
-
-  const applyTheme = (themeName) => {
-    const theme = themes.find(t => t.primary === themeName);
-    if (theme) {
-      document.documentElement.style.setProperty('--theme-primary', theme.colors.primary);
-      document.documentElement.style.setProperty('--theme-secondary', theme.colors.secondary);
-      document.documentElement.style.setProperty('--theme-accent', theme.colors.accent);
-      document.documentElement.style.setProperty('--theme-hover', theme.colors.hover);
-      localStorage.setItem('colorTheme', themeName);
-    }
-  };
-
   const selectTheme = (themeName) => {
-    setCurrentTheme(themeName);
-    applyTheme(themeName);
+    changeTheme(themeName);
     setIsOpen(false);
   };
 

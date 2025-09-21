@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useTheme } from '../../lib/themeContext';
 import ToolCard from "../../components/ToolCard";
 import MergeModal from "../../components/MergeModal";
 import CompressModal from "../../components/CompressModal";
@@ -72,6 +73,9 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const { getThemeClasses } = useTheme();
+  const themeClasses = getThemeClasses();
+
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [compressModalOpen, setCompressModalOpen] = useState(false);
   const [splitModalOpen, setSplitModalOpen] = useState(false);
@@ -352,11 +356,20 @@ export default function Home() {
                 onClick={tool.onClick}
               >
                 <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-800 transition-colors">
-                    <tool.icon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div
+                    className="w-12 h-12 rounded-lg flex items-center justify-center transition-colors"
+                    style={{
+                      backgroundColor: `rgb(from var(--theme-accent) r g b / 0.5)`,
+                      border: `1px solid rgb(from var(--theme-accent) r g b / 0.2)`
+                    }}
+                  >
+                    <tool.icon
+                      className="w-6 h-6"
+                      style={{ color: 'var(--theme-icon)' }}
+                    />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    <h3 className="font-semibold text-gray-900 dark:text-white transition-colors group-hover:text-blue-600 dark:group-hover:text-blue-400">
                       {tool.title}
                     </h3>
                   </div>
