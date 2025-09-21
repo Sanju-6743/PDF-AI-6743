@@ -9,15 +9,35 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@headlessui/react": "^2.2.8",
+    "@heroicons/react": "^2.2.0",
+    "@supabase/supabase-js": "^2.57.4",
+    "axios": "^1.12.2",
+    "canvas-confetti": "^1.9.3",
+    "docx": "^9.5.1",
+    "epub-parser": "^0.2.5",
+    "framer-motion": "^12.23.16",
+    "lucide-react": "^0.544.0",
+    "mammoth": "^1.11.0",
+    "markdown-it": "^14.1.0",
+    "next": "15.5.3",
+    "pdf-lib": "^1.17.1",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.149",
+    "pptx-parser": "^1.1.7-beta.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.5.3"
+    "react-dropzone": "^14.3.8",
+    "react-hot-toast": "^2.6.0",
+    "react-pdf": "^10.1.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
-    "@eslint/eslintrc": "^3"
+    "tailwindcss": "^4"
   }
 }
