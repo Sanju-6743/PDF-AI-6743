@@ -58,7 +58,7 @@ export default function Footer() {
         </div>
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-center text-sm text-gray-600 dark:text-gray-400">
-            © 2025 PDF Toolkit. Built with Next.js and Tailwind CSS.
+            © 2025 PDF Toolkit by SANJAY REDDY. Built with Next.js and Tailwind CSS.
           </p>
         </div>
       </div>

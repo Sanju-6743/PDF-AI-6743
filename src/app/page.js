@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../../lib/themeContext';
 import ToolCard from "../../components/ToolCard";
@@ -27,6 +27,7 @@ import ExtractImagesModal from "../../components/ExtractImagesModal";
 import ExtractFontsModal from "../../components/ExtractFontsModal";
 import ConversionPlaceholderModal from "../../components/ConversionPlaceholderModal";
 import { Toaster } from 'react-hot-toast';
+import SearchBar from "../../components/SearchBar";
 import {
   FileText,
   Scissors,
@@ -75,6 +76,9 @@ import {
 export default function Home() {
   const { getThemeClasses } = useTheme();
   const themeClasses = getThemeClasses();
+
+  const [filteredTools, setFilteredTools] = useState([]);
+  const [searchResults, setSearchResults] = useState([]);
 
   const [mergeModalOpen, setMergeModalOpen] = useState(false);
   const [compressModalOpen, setCompressModalOpen] = useState(false);
@@ -150,75 +154,41 @@ export default function Home() {
     } else if (toolName === "Extract Fonts") {
       setExtractFontsModalOpen(true);
     } else if (toolName === "PDF to Excel") {
-      setCurrentPlaceholderTitle("PDF to Excel");
-      setCurrentPlaceholderDescription("Extract tabular data from PDF documents and convert to Excel spreadsheets.");
-      setCurrentPlaceholderRequirements([
-        "xlsx - for Excel file creation",
-        "pdf-parse - for PDF content extraction",
-        "Table detection and parsing algorithms",
-        "Data structure recognition"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to Excel conversion
+      handleConversion("PDF to Excel", "/api/pdf-to-excel");
     } else if (toolName === "PDF to PPT") {
-      setCurrentPlaceholderTitle("PDF to PowerPoint");
-      setCurrentPlaceholderDescription("Convert PDF slides and documents to PowerPoint presentations.");
-      setCurrentPlaceholderRequirements([
-        "pptxgenjs - for PowerPoint creation",
-        "pdf-parse - for content extraction",
-        "Slide layout detection algorithms",
-        "Image and text positioning logic"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to PPT conversion
+      handleConversion("PDF to PPT", "/api/pdf-to-ppt");
     } else if (toolName === "PDF to HTML") {
-      setCurrentPlaceholderTitle("PDF to HTML");
-      setCurrentPlaceholderDescription("Convert PDF documents to HTML format with preserved styling and structure.");
-      setCurrentPlaceholderRequirements([
-        "html-entities - for HTML encoding",
-        "css-parse - for style extraction",
-        "Layout analysis algorithms",
-        "HTML structure generation"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to HTML conversion
+      handleConversion("PDF to HTML", "/api/pdf-to-html");
     } else if (toolName === "PDF to ePub") {
-      setCurrentPlaceholderTitle("PDF to ePub");
-      setCurrentPlaceholderDescription("Convert PDF documents to ePub format for e-readers.");
-      setCurrentPlaceholderRequirements([
-        "epub-gen - for ePub creation",
-        "pdf-parse - for content extraction",
-        "Chapter detection algorithms",
-        "ePub formatting standards"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to ePub conversion
+      handleConversion("PDF to ePub", "/api/pdf-to-epub");
     } else if (toolName === "PDF to CSV") {
-      setCurrentPlaceholderTitle("PDF to CSV");
-      setCurrentPlaceholderDescription("Extract tabular data from PDFs and convert to CSV format.");
-      setCurrentPlaceholderRequirements([
-        "csv-writer - for CSV generation",
-        "Table detection algorithms",
-        "Data parsing and validation",
-        "CSV formatting standards"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to CSV conversion
+      handleConversion("PDF to CSV", "/api/pdf-to-csv");
     } else if (toolName === "PDF to Markdown") {
-      setCurrentPlaceholderTitle("PDF to Markdown");
-      setCurrentPlaceholderDescription("Convert PDF documents to Markdown format for easy editing.");
-      setCurrentPlaceholderRequirements([
-        "markdown-it - for Markdown processing",
-        "pdf-parse - for content extraction",
-        "Structure analysis algorithms",
-        "Markdown formatting logic"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to Markdown conversion
+      handleConversion("PDF to Markdown", "/api/pdf-to-markdown");
     } else if (toolName === "PDF to Images") {
-      setCurrentPlaceholderTitle("PDF to Images");
-      setCurrentPlaceholderDescription("Convert PDF pages to high-quality images (PNG, JPG, etc.).");
-      setCurrentPlaceholderRequirements([
-        "canvas - for image rendering",
-        "pdf2pic - for PDF to image conversion",
-        "Image processing libraries",
-        "High-quality rendering engines"
-      ]);
-      setConversionPlaceholderModalOpen(true);
+      // Handle PDF to Images conversion
+      handleConversion("PDF to Images", "/api/pdf-to-images");
+    } else if (toolName === "OCR Text Extraction") {
+      // Handle OCR Text Extraction
+      handleConversion("OCR Text Extraction", "/api/ocr-extract");
+    } else if (toolName === "AI Translate") {
+      // Handle AI Translate
+      handleAITool("AI Translate", "/api/ai-translate");
+    } else if (toolName === "AI Summarize") {
+      // Handle AI Summarize
+      handleAITool("AI Summarize", "/api/ai-summarize");
+    } else if (toolName === "Chat with PDF") {
+      // Handle Chat with PDF
+      handleChatTool("Chat with PDF");
+    } else if (toolName === "Keyword Search") {
+      // Handle Keyword Search
+      handleSearchTool("Keyword Search");
     } else {
       alert(`${toolName} tool selected. Implementation coming soon!`);
     }
@@ -290,44 +260,227 @@ export default function Home() {
     { icon: Tag, title: "Keyword Search", description: "Search and auto-tag PDF", onClick: () => handleToolClick("Keyword Search") },
   ];
 
+  // Initialize filtered tools with all tools
+  useEffect(() => {
+    const allTools = [...basicTools, ...advancedTools, ...conversionTools, ...annotationTools, ...formTools, ...batchTools, ...aiTools];
+    setFilteredTools(allTools);
+    setSearchResults(allTools);
+  }, []);
+
+  const handleSearchResults = useCallback((results) => {
+    setSearchResults(results);
+  }, []);
+
+  const handleConversion = async (toolName, apiEndpoint) => {
+    // Create a file input for the user to select a PDF
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // For now, just show the result in console and alert
+          // In a real implementation, you'd download the file or show results
+          console.log(`${toolName} result:`, result);
+          alert(`${toolName} completed! Check console for results.`);
+        } else {
+          alert(`Error: ${result.error}`);
+        }
+      } catch (error) {
+        console.error(`Error with ${toolName}:`, error);
+        alert(`Error processing ${toolName}`);
+      }
+    };
+    input.click();
+  };
+
+  const handleAITool = async (toolName, apiEndpoint) => {
+    // Create a file input for the user to select a PDF
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // For AI tools, we might need additional parameters
+      let additionalData = {};
+
+      if (toolName === 'AI Translate') {
+        const targetLanguage = prompt('Enter target language (es, fr, de, it, pt, ru, ja, ko, zh, ar, hi):', 'es');
+        if (!targetLanguage) return;
+        additionalData.targetLanguage = targetLanguage;
+      } else if (toolName === 'AI Summarize') {
+        const summaryLength = prompt('Choose summary length (short, medium, long):', 'medium');
+        if (!summaryLength) return;
+        additionalData.length = summaryLength;
+      }
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Add additional parameters
+        Object.keys(additionalData).forEach(key => {
+          formData.append(key, additionalData[key]);
+        });
+
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          console.log(`${toolName} result:`, result);
+          alert(`${toolName} completed! Check console for results.`);
+        } else {
+          alert(`Error: ${result.error}`);
+        }
+      } catch (error) {
+        console.error(`Error with ${toolName}:`, error);
+        alert(`Error processing ${toolName}`);
+      }
+    };
+    input.click();
+  };
+
+  const handleChatTool = async (toolName) => {
+    // For chat functionality, we'd need a more complex UI
+    // For now, just show a placeholder
+    alert('Chat with PDF feature requires a dedicated chat interface. Implementation coming soon!');
+  };
+
+  const handleSearchTool = async (toolName) => {
+    // Create a file input for the user to select a PDF
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const keywords = prompt('Enter keywords to search for:');
+      if (!keywords) return;
+
+      const searchType = prompt('Search type (exact, fuzzy, semantic):', 'exact');
+      if (!searchType) return;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('keywords', keywords);
+        formData.append('searchType', searchType);
+
+        const response = await fetch('/api/keyword-search', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          console.log(`${toolName} result:`, result);
+          alert(`${toolName} completed! Found results for "${keywords}". Check console for details.`);
+        } else {
+          alert(`Error: ${result.error}`);
+        }
+      } catch (error) {
+        console.error(`Error with ${toolName}:`, error);
+        alert(`Error processing ${toolName}`);
+      }
+    };
+    input.click();
+  };
+
+  const toolsData = {
+    basicTools,
+    advancedTools,
+    conversionTools,
+    annotationTools,
+    formTools,
+    batchTools,
+    aiTools
+  };
+
   return (
     <>
-      {/* Clean Hero Section */}
-      <section className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-800 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 dark:text-white mb-6">
+      {/* Enhanced Hero Section with Glassmorphism */}
+      <section className="relative bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 py-20 overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl float-animation"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-400/20 rounded-full blur-3xl float-animation" style={{ animationDelay: '2s' }}></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <div className="max-w-4xl mx-auto">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="hero-title text-4xl md:text-6xl lg:text-7xl font-bold gradient-text mb-6"
+            >
               Professional PDF Tools
-            </h1>
-            <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 mb-8 leading-relaxed"
+            >
               Transform, edit, and manage your PDF documents with our comprehensive toolkit.
               All processing happens locally for maximum privacy and security.
-            </p>
+            </motion.p>
 
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+              className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
+            >
+              <button className="glass-card hover:glass-card-dark text-white px-8 py-4 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 focus-ring">
                 Get Started
               </button>
-              <button className="border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <button className="glass-card hover:glass-card-dark text-gray-700 dark:text-gray-300 px-8 py-4 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 focus-ring">
                 Learn More
               </button>
-            </div>
+            </motion.div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">50+</div>
-                <div className="text-gray-600 dark:text-gray-400">PDF Tools</div>
+            {/* Enhanced Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto"
+            >
+              <div className="glass-card rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div className="text-4xl font-bold gradient-text mb-2">50+</div>
+                <div className="text-gray-600 dark:text-gray-400 font-medium">PDF Tools</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">100%</div>
-                <div className="text-gray-600 dark:text-gray-400">Privacy</div>
+              <div className="glass-card rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div className="text-4xl font-bold gradient-text mb-2">100%</div>
+                <div className="text-gray-600 dark:text-gray-400 font-medium">Privacy</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Free</div>
-                <div className="text-gray-600 dark:text-gray-400">Forever</div>
+              <div className="glass-card rounded-2xl p-6 hover:scale-105 transition-transform duration-300">
+                <div className="text-4xl font-bold gradient-text mb-2">Free</div>
+                <div className="text-gray-600 dark:text-gray-400 font-medium">Forever</div>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -339,32 +492,38 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
               Choose Your Tool
             </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-8">
               Select from our comprehensive collection of PDF processing tools
             </p>
+
+            {/* Search Bar */}
+            <SearchBar tools={toolsData} onSearchResults={handleSearchResults} />
           </div>
 
-          {/* All Tools in One Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...basicTools, ...advancedTools, ...conversionTools, ...annotationTools, ...formTools, ...batchTools, ...aiTools].map((tool, index) => (
+          {/* Enhanced Tools Grid with Glassmorphism */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="tool-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+          >
+            {searchResults.map((tool, index) => (
               <motion.div
                 key={index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
-                className="group backdrop-blur-md bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg border border-white/20 dark:border-gray-700/50 p-6 hover:shadow-xl hover:border-blue-300/50 dark:hover:border-blue-600/50 transition-all duration-200 cursor-pointer hover:bg-white/90 dark:hover:bg-gray-800/90"
+                className="group glass-card rounded-2xl p-6 hover:scale-105 transition-all duration-300 cursor-pointer hover:shadow-2xl focus-ring"
                 onClick={tool.onClick}
               >
                 <div className="flex items-center space-x-4 mb-4">
-                  <div
-                    className="w-12 h-12 rounded-lg flex items-center justify-center transition-colors"
-                    style={{
-                      backgroundColor: `rgb(from var(--theme-accent) r g b / 0.5)`,
-                      border: `1px solid rgb(from var(--theme-accent) r g b / 0.2)`
-                    }}
-                  >
+                  <div className="tool-icon w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-3"
+                       style={{
+                         background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(147, 51, 234, 0.2))',
+                         border: '1px solid rgba(59, 130, 246, 0.3)'
+                       }}>
                     <tool.icon
-                      className="w-6 h-6"
+                      className="w-6 h-6 transition-colors duration-300"
                       style={{ color: 'var(--theme-icon)' }}
                     />
                   </div>
@@ -379,58 +538,84 @@ export default function Home() {
                 </p>
               </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4">
+      {/* Enhanced Features Section with Glassmorphism */}
+      <section id="features" className="py-20 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 relative overflow-hidden">
+        {/* Background decorative elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-400/10 to-purple-400/10 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-64 h-64 bg-gradient-to-r from-purple-400/10 to-pink-400/10 rounded-full blur-3xl"></div>
+        </div>
+
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold gradient-text mb-4">
               Why Choose PDF Toolkit?
             </h2>
-            <p className="text-lg text-gray-600 dark:text-gray-300">
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
               Built for professionals who value privacy and efficiency
             </p>
-          </div>
+          </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+              className="glass-card rounded-3xl p-8 text-center hover:scale-105 transition-all duration-300 group"
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">100% Private</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">100% Private</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                 All processing happens in your browser. Your files never leave your device.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className="glass-card rounded-3xl p-8 text-center hover:scale-105 transition-all duration-300 group"
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-blue-400 to-cyan-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Lightning Fast</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Lightning Fast</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                 Process large PDF files instantly with our optimized algorithms.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="glass-card rounded-3xl p-8 text-center hover:scale-105 transition-all duration-300 group"
+            >
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">AI Powered</h3>
-              <p className="text-gray-600 dark:text-gray-300">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">AI Powered</h3>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                 Advanced AI features for intelligent PDF processing and analysis.
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>

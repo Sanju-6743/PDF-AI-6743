@@ -3,14 +3,24 @@
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { CloudArrowUpIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../lib/AuthContext';
+import { logFileUpload } from '../utils/analytics';
 
 export default function FileUpload({ onFilesSelected, multiple = true, accept = { 'application/pdf': ['.pdf'] }, maxFiles = 10 }) {
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const { user } = useAuth();
 
-  const onDrop = useCallback((acceptedFiles) => {
+  const onDrop = useCallback(async (acceptedFiles) => {
     setSelectedFiles(acceptedFiles);
     onFilesSelected(acceptedFiles);
-  }, [onFilesSelected]);
+
+    // Log file uploads for analytics
+    if (user && acceptedFiles.length > 0) {
+      for (const file of acceptedFiles) {
+        await logFileUpload(user.id, file.name, file.size);
+      }
+    }
+  }, [onFilesSelected, user]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

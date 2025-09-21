@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import FileUpload from './FileUpload';
 import { compressPDF, downloadBlob } from '../utils/pdfUtils';
+import { useAuth } from '../lib/AuthContext';
+import { logToolUsage } from '../utils/analytics';
 import toast from 'react-hot-toast';
 
 export default function CompressModal({ isOpen, onClose }) {
+  const { user } = useAuth();
   const [files, setFiles] = useState([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -26,12 +29,17 @@ export default function CompressModal({ isOpen, onClose }) {
     setProgress(0);
     setProgressText('Starting compression...');
 
+    const startTime = Date.now();
+    let success = false;
+    let errorMessage = null;
+
     try {
       const compressedPdfBytes = await compressPDF(files[0], (progressValue, text) => {
         setProgress(progressValue);
         setProgressText(text);
       });
 
+      const processingTime = Date.now() - startTime;
       const originalSize = files[0].size;
       const compressedSize = compressedPdfBytes.length;
       const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
@@ -39,11 +47,43 @@ export default function CompressModal({ isOpen, onClose }) {
       const blob = new Blob([compressedPdfBytes], { type: 'application/pdf' });
       downloadBlob(blob, 'compressed.pdf');
 
+      success = true;
       toast.success(`PDF compressed! Reduced by ${compressionRatio}%`);
+
+      // Log successful tool usage
+      if (user) {
+        await logToolUsage(
+          user.id,
+          'compress',
+          files[0].name,
+          true,
+          processingTime,
+          {
+            original_size_bytes: originalSize,
+            compressed_size_bytes: compressedSize,
+            compression_ratio_percent: parseFloat(compressionRatio)
+          }
+        );
+      }
+
       onClose();
     } catch (error) {
+      const processingTime = Date.now() - startTime;
+      errorMessage = error.message || 'Unknown error';
       console.error('Error compressing PDF:', error);
       toast.error('Error compressing PDF. Please try again.');
+
+      // Log failed tool usage
+      if (user) {
+        await logToolUsage(
+          user.id,
+          'compress',
+          files[0].name,
+          false,
+          processingTime,
+          { error: errorMessage }
+        );
+      }
     } finally {
       setIsProcessing(false);
       setProgress(0);
