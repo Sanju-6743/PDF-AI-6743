@@ -18,9 +18,14 @@ export default function LoginPage() {
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
-      const user = await getCurrentUser();
-      if (user) {
-        router.push('/');
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          router.push('/');
+        }
+      } catch (error) {
+        // Supabase not configured, skip auth check
+        console.log('Supabase not configured, skipping auth check');
       }
     };
     checkUser();
@@ -53,6 +58,12 @@ export default function LoginPage() {
       }
     } catch (error) {
       console.error('Auth error:', error);
+
+      // Handle Supabase configuration error
+      if (error.message.includes('Supabase environment variables are not configured')) {
+        toast.error('Authentication is not configured. Use the bypass option to test PDF tools.');
+        return;
+      }
 
       // Handle specific Supabase errors
       if (error.message.includes('Email not confirmed')) {
