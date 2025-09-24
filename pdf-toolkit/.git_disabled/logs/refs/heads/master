@@ -1,0 +1,5 @@
+0000000000000000000000000000000000000000 dbf0126b7914d52b436f8207270c8b9d74b1c166 Sanju <sanjaymuthakana29@gmail.com> 1758423428 +0530	commit (initial): Initial commit from Create Next App
+dbf0126b7914d52b436f8207270c8b9d74b1c166 83df1bb17d58dc89002bfcd647306b02fdcd1b35 Sanju <sanjaymuthakana29@gmail.com> 1758454253 +0530	commit: Enhanced PDF Toolkit with glassmorphism UI, theme selector, and Vercel deployment
+83df1bb17d58dc89002bfcd647306b02fdcd1b35 03db247869bb41ded1e18757b3324e720167492a Sanju <sanjaymuthakana29@gmail.com> 1758454605 +0530	commit: Fix Vercel deployment: Make Supabase client lazy-loaded to prevent build-time errors
+03db247869bb41ded1e18757b3324e720167492a d20c661477b1f256faec2d84136480dd6965c4cd Sanju <sanjaymuthakana29@gmail.com> 1758455679 +0530	commit: Fix theme functionality: Implement dynamic theme colors for tool cards
+d20c661477b1f256faec2d84136480dd6965c4cd a6ac587e4918aca465f0608700ab824b9fb5eaaf Sanju <sanjaymuthakana29@gmail.com> 1758473377 +0530	commit: Add latest changes and new features
